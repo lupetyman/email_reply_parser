@@ -81,9 +81,17 @@ class EmailReplyParser
 
       # Check for multi-line reply headers. Some clients break up
       # the "On DATE, NAME <EMAIL> wrote:" line into multiple lines.
-      if text =~ /^(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)$/m
+      # NATE: the previous matcher was:
+      #   text =~ /^(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)$/m
+      # but this failed if you had multiple valid On..wrote: blocks.
+      # A different heuristic is to count the number of lines in the block,
+      # not sure it is any better but I don't think it is worse.
+      # (?!On.*On\s.+?wrote:) is a negative look-ahead 
+      if text =~ /^(On\s(.+?)wrote:)$/m
         # Remove all new lines from the reply header.
-        text.gsub! $1, $1.gsub("\n", " ")
+        if $1.lines.to_a.length < 4
+          text.gsub! $1, $1.gsub("\n", " ")
+        end
       end
 
       # Some users may reply directly above a line of underscores or hyphens.
